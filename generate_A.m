@@ -1,4 +1,4 @@
-function A = generate_A(H, masks)
+function [A, S] = generate_A(H, masks)
 
 size1 = size(H,1);
 size2 = size(H,2); %is actually equal to size1
