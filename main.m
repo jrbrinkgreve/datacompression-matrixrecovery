@@ -3,8 +3,8 @@ load("Sparse_Low_Rank_dataset.mat")
 
 close all
 
-M = 100;   %number of measurements
-limit = 10; %number of matrices
+M = 150;   %number of measurements
+limit = 100; %number of matrices
 H = H(:,:,1:limit); %to run only 'limit' number of matrices
 
 size1 = size(H,1);
@@ -106,9 +106,9 @@ max_iter = max(size(obj_vals_prox_efficient));
 
 %plot convergences
 figure;
-plot(1:max_iter, log10(obj_vals_PSGD), 'LineWidth', 2);
+plot(1:max_iter, (obj_vals_PSGD), 'LineWidth', 2);
 hold on
-plot(1:max_iter, log10(obj_vals_prox_efficient), 'LineWidth', 2);
+plot(1:max_iter, 10000*(obj_vals_prox_efficient), 'LineWidth', 2);
 xlabel('Iteration'); ylabel('Objective Function');
 title('10log of recovery objective functions');
 grid on;

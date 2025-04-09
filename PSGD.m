@@ -4,12 +4,13 @@ tic
 size1 = sqrt(len_y);
 max_iter = 500;
 alpha = 0.001;% need a small step size here!
-eps_grad = 1e-6;
+eps_grad = 1e-3;
 
 
 %initialize
 x = zeros(len_y, 1);
 obj_vals = zeros(max_iter,1);
+tol = 1e-5;
 
 %preallocate 
 Ah = A';
@@ -32,8 +33,15 @@ for k = 1:max_iter
     %objective value (for monitoring)
     obj_vals(k,1) = norm(x, 1);
     %obj_vals(k,2) = norm(x, 2);
-
     
+    % check convergence if we have 5 values
+    if k >= 10
+        avg_prev = mean(obj_vals(k-9:k-1));  
+        avg_curr = mean(obj_vals(k-9:k));    
+        if abs(avg_curr - avg_prev) < tol
+            break;
+        end
+    end
   
 
 end
