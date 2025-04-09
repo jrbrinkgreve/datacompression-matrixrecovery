@@ -7,7 +7,7 @@ size1 = sqrt(len_y); %assume square matrix to recover
 
 %these specific parameters for this approach
 max_iter = 500;
-lambda = 0.01;  
+lambda = 0.001;  
 alpha = 1 / (norm(A, 2)^2);  %constant step size (lipschitz constant)
 
 %predefine often-used matrices and values 

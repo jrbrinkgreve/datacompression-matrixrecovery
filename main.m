@@ -4,7 +4,7 @@ load("Sparse_Low_Rank_dataset.mat")
 close all
 
 M = 150;   %number of measurements
-limit = 100; %number of matrices
+limit = 10; %number of matrices
 H = H(:,:,1:limit); %to run only 'limit' number of matrices
 
 size1 = size(H,1);
@@ -23,16 +23,19 @@ y = subsample(H, masks);   %this is the data we are allowed to work with
 %preallocate data tensors
 H_reconstructed_prox_simple = zeros(size(H));
 H_reconstructed_prox_efficient = zeros(size(H));
-H_reconstructed_nuc = zeros(size(H));
+H_reconstructed_nuc_PSGD = zeros(size(H));
+H_reconstructed_nuc_prox = zeros(size(H));
 H_reconstructed_psgd = zeros(size(H));
 reconstruction_error_prox_simple = zeros(size3,1);
 reconstruction_error_prox_efficient = zeros(size3,1);
 reconstruction_error_psgd = zeros(size3,1);
-reconstruction_error_nuc = zeros(size3,1);
+reconstruction_error_nuc_PSGD = zeros(size3,1);
+reconstruction_error_nuc_prox = zeros(size3,1);
 runtime_psgd = zeros(size3,1);
 runtime_prox_simple = zeros(size3,1);
 runtime_prox_efficient = zeros(size3,1);
-runtime_nuc = zeros(size3,1);
+runtime_nuc_PSGD = zeros(size3,1);
+runtime_nuc_prox = zeros(size3,1);
 
 
 %tracker for solve loop
@@ -48,7 +51,8 @@ for i = 1:size3
 [H_reconstructed_prox_simple(:,:,i), obj_vals_prox_simple, runtime_prox_simple(i)]       =           prox(y(:,i), A(:,:,i), S(:,:,i));
 [H_reconstructed_prox_efficient(:,:,i), obj_vals_prox_efficient, runtime_prox_efficient(i)] = efficient_prox(y(:,i), A(:,:,i), S(:,:,i));
 [H_reconstructed_psgd(:,:,i), obj_vals_PSGD, runtime_psgd(i)]                     =           PSGD(y(:,i), A(:,:,i));
-%[H_reconstructed_nuc(:,:,i), obj_vals_nuc, runtime_nuc(i] = nuclear_norm_min(y(:,i), A(:,:,i), S(:,:,i));
+[H_reconstructed_nuc_PSGD(:,:,i), obj_vals_nuc_PSGD, runtime_nuc_PSGD(i)] = nuclear_norm_PSGD(y(:,i), A(:,:,i), S(:,:,i));
+[H_reconstructed_nuc_prox(:,:,i), obj_vals_nuc_prox, runtime_nuc_prox(i)] = nuclear_norm_prox(y(:,i), A(:,:,i), S(:,:,i));
 
 progress = 100 * i / size3;
 if progress >= next_update
@@ -71,7 +75,8 @@ for i = 1:size3
 reconstruction_error_prox_simple(i) = norm(H_reconstructed_prox_simple(:,:,i) - H(:,:,i), 'fro');
 reconstruction_error_prox_efficient(i) = norm(H_reconstructed_prox_efficient(:,:,i) - H(:,:,i), 'fro');
 reconstruction_error_psgd(i) = norm(H_reconstructed_psgd(:,:,i) - H(:,:,i), 'fro');
-reconstruction_error_nuc(i) =  norm(H_reconstructed_nuc(:,:,i)  - H(:,:,i), 'fro');
+reconstruction_error_nuc_PSGD(i) =  norm(H_reconstructed_nuc_PSGD(:,:,i)  - H(:,:,i), 'fro');
+reconstruction_error_nuc_prox(i) =  norm(H_reconstructed_nuc_prox(:,:,i)  - H(:,:,i), 'fro');
 
 
 
@@ -81,12 +86,14 @@ end
 avg_error_prox_simple = mean(reconstruction_error_prox_simple);
 avg_error_prox_efficient = mean(reconstruction_error_prox_efficient);
 avg_error_psgd = mean(reconstruction_error_psgd);
-avg_error_nuc = mean(reconstruction_error_nuc);
+avg_error_nuc_PSGD = mean(reconstruction_error_nuc_PSGD);
+avg_error_nuc_prox = mean(reconstruction_error_nuc_prox);
 
 avg_runtime_prox_simple = mean(runtime_prox_simple);
 avg_runtime_prox_efficient = mean(runtime_prox_efficient);
 avg_runtime_psgd = mean(runtime_psgd);
-avg_runtime_nuc = mean(runtime_nuc);
+avg_runtime_nuc_PSGD = mean(runtime_nuc_PSGD);
+avg_runtime_nuc_prox = mean(runtime_nuc_prox);
 
 fprintf('Convergence Summary:\n');
 fprintf('---------------------\n');
@@ -95,7 +102,8 @@ fprintf('-----------------------------------------------------------\n');
 fprintf('Prox (Simple)           | %.4e     | %.4f\n', avg_error_prox_simple, avg_runtime_prox_simple);
 fprintf('Prox (Efficient)        | %.4e     | %.4f\n', avg_error_prox_efficient, avg_runtime_prox_efficient);
 fprintf('Projected SGD           | %.4e     | %.4f\n', avg_error_psgd, avg_runtime_psgd);
-fprintf('Nuclear Norm Minim.     | %.4e     | %.4f\n', avg_error_nuc, avg_runtime_nuc);
+fprintf('Nuclear Norm Minim PSGD.| %.4e     | %.4f\n', avg_error_nuc_PSGD, avg_runtime_nuc_PSGD);
+fprintf('Nuclear Norm Minim prox.| %.4e     | %.4f\n', avg_error_nuc_prox, avg_runtime_nuc_prox);
 fprintf('-----------------------------------------------------------\n');
 
 
@@ -108,11 +116,27 @@ max_iter = max(size(obj_vals_prox_efficient));
 figure;
 plot(1:max_iter, (obj_vals_PSGD), 'LineWidth', 2);
 hold on
-plot(1:max_iter, 10000*(obj_vals_prox_efficient), 'LineWidth', 2);
+plot(1:max_iter, 1000*(obj_vals_prox_efficient), 'LineWidth', 2);
 xlabel('Iteration'); ylabel('Objective Function');
-title('10log of recovery objective functions');
+title('Recovery objective functions');
 grid on;
-legend('PSGD', 'prox')
+legend('PSGD', 'prox * lambda')
+set(gca, fontsize = 30)
 
 
+%{
+
+
+%plot convergences
+figure;
+plot(1:max_iter, (obj_vals_nuc_PSGD), 'LineWidth', 2);
+hold on 
+plot(1:max_iter, (obj_vals_nuc_prox(:,2)), 'LineWidth', 2);
+xlabel('Iteration'); ylabel('Norm');
+title('Reconstruction metrics');
+grid on;
+legend('norm(y - Ax,2)', 'Nuclear norm of X, PSGD alg.', 'Nuclear norm of X, prox alg.')
+set(gca, fontsize = 30)
+
+%}
 
