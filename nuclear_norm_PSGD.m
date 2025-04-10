@@ -5,7 +5,7 @@ size1 = sqrt(len_y);
 max_iter = 500;
 alpha = 0.001;% need a small step size here!
 eps_grad = 1e-6;
-
+nu = 1;
 
 %initialize
 x = zeros(len_y, 1);
@@ -39,8 +39,10 @@ end
 
 for k = 1:max_iter
     X = reshape(x, size1,size1);
-    [U, D, V] = svd(X);
-    grad = vec(U*V');
+    H = ifft2(X) * size1;
+    [U, D, V] = svd(H);     %ifft2(X) * size1 = H
+    grad = nu * vec(fft2(U*V')) + sign(x);    
+    grad(abs(x) < eps_grad) = 0;
     z = x - alpha * grad;
 
     %projection onto affine space
@@ -48,7 +50,8 @@ for k = 1:max_iter
     x = I_Ah_AAh_pinv_A*z + Ah_AAh_pinv_y;
        
     obj_vals(k,1) = norm(y - A*x);
-    obj_vals(k,2) = trace(  real((X' * X)^0.5  ));
+    obj_vals(k,2) = trace(  real((H' * H)^0.5  ));
+    obj_vals(k,3) = norm(x, 1);
 
 end
 

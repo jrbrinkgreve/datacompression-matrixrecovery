@@ -9,11 +9,12 @@ size1 = sqrt(len_y); %assume square matrix to recover
 max_iter = 500;
 lambda = 0.001;  
 alpha = 1 / (norm(A, 2)^2);  %constant step size (lipschitz constant)
-
+nu = 0.001;
 %predefine often-used matrices
 Ah = A'; 
 Ahy = Ah * y;
-eta = alpha * lambda;
+eta_l = alpha * lambda;
+eta_nu = alpha * nu;
 Gs = S' * S;
 g = diag(Gs);
 
@@ -32,7 +33,7 @@ for k = 1:max_iter
     z = x - alpha * grad;
     
     %proximal step with l1 norm
-    x = max(0, abs(z) - eta) .* sign(z);
+    x = max(0, abs(z) - eta_l) .* sign(z);
     
     %objective function value
     %obj_vals(k) = 0.5 * norm(A * x - y, 2)^2 + lambda * norm(x, 1);
@@ -49,12 +50,14 @@ for k = 1:max_iter
     grad = vec(fft2(Gamma)) - Ahy;     
     z = x - alpha * grad;
     
-    %proximal step with l1 norm
-    x = singular_value_thresholding(z,eta);
+    %proximal step with nuc norm
+    x = singular_value_thresholding(z,eta_nu);
     
     %objective function value
     obj_vals(k,1) = norm(y - A*x);
-    obj_vals(k,2) = trace(  real((X' * X)^0.5  ));
+    H_obj = ifft2(X) * size1;
+    obj_vals(k,2) = trace(  real((H_obj' * H_obj)^0.5  ));
+    obj_vals(k,3) = norm(x, 1);
 
 
 end
@@ -64,10 +67,11 @@ end
 function x_thresh = singular_value_thresholding(z, tau)
 %singular Value Thresholding (SVT): applies soft-thresholding to singular values
     Z = reshape(z, size1, size1);
-    [U, D, V] = svd(Z);
+    H = ifft2(Z);
+    [U, D, V] = svd(H);
     d = diag(D);
     d_hat = max(d - tau, 0);  % Soft thresholding on singular values
-    x_thresh = vec(U * diag(d_hat) * V');  % Reconstruct the matrix with thresholded singular values
+    x_thresh = vec(fft2(U * diag(d_hat) * V'));  % Reconstruct the matrix with thresholded singular values
 end
 
 

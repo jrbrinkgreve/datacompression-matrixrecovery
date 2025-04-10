@@ -124,19 +124,19 @@ legend('PSGD', 'prox * lambda')
 set(gca, fontsize = 30)
 
 
-%{
+
 
 
 %plot convergences
 figure;
 plot(1:max_iter, (obj_vals_nuc_PSGD), 'LineWidth', 2);
 hold on 
-plot(1:max_iter, (obj_vals_nuc_prox(:,2)), 'LineWidth', 2);
+plot(1:max_iter, (obj_vals_nuc_prox(:,2:3)), 'LineWidth', 2);
 xlabel('Iteration'); ylabel('Norm');
-title('Reconstruction metrics');
+title('Objective functions for nuclear norm minimization');
 grid on;
-legend('norm(y - Ax,2)', 'Nuclear norm of X, PSGD alg.', 'Nuclear norm of X, prox alg.')
+legend('norm(y - Ax,2)', 'Nuclear norm of H, PSGD alg.', 'l1 norm of x, PSGD alg.', 'Nuclear norm of H, prox alg.', 'l1 norm of x, prox alg.')
 set(gca, fontsize = 30)
 
-%}
+%
 
